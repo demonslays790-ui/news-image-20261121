@@ -1,27 +1,43 @@
 #!/usr/bin/env python3
 """Draw entry.png: one front page summing up Saturday 21 November 2026.
 
-Stories (all reported on 21 November 2026 by wire services and that day's
-morning papers):
-  * Trump, Xi and Putin hold a trilateral summit in Shenzhen, on the
-    sidelines of the APEC conference (The Hindu morning digest, 21 Nov).
-  * Myanmar rejects the ICJ genocide verdict on the Rohingya as rights
-    groups urge sanctions (AP/AFP, 21 Nov).
+Every story below was verified against reports published on 20-21 November
+2026 (the Saturday morning papers carry Friday's news):
+  * Trump, Xi and Putin hold the first-ever trilateral summit in Shenzhen,
+    on the sidelines of the APEC conference; the joint statement says a
+    nuclear war "cannot be won and must never be fought" (Al Jazeera, The
+    Times/WSJ, Nikkei, 19-20 Nov).
+  * Myanmar rejects the ICJ genocide verdict on the Rohingya as "unfair":
+    the court ruled 9-6 on 19 Nov that Myanmar committed genocide, and
+    ordered returns and reparations (AP, Reuters, Al Jazeera, 20 Nov).
   * COP31 in Antalya runs into overtime, deadlocked after the draft deal
-    dropped fossil fuels (AFP, 21 Nov).
-  * Russia pounds Ukraine anew after Putin vowed retaliation; a Russian
-    missile crashed in Poland, which Warsaw calls a provocation (AP, 21 Nov).
-  * Denmark accuses Russian intelligence of a plot to kill a Ukrainian on
-    its soil and expels a Russian diplomat (AP, 21 Nov).
-  * A tanker/LPG ship is hit by a projectile near the Strait of Hormuz off
-    Oman and catches fire; a seafarer is missing (UKMTO reports, 21 Nov).
-  * Cost-of-living protests join forces across Europe (AFP, 21 Nov).
-  * Also: GTA VI launches worldwide; Nikhil Gupta jailed 19.5 years in New
-    York in the Sikh separatist murder-for-hire plot; Bolsonaro in hospital.
+    dropped fossil fuels; a third draft is due Saturday (AFP via Al
+    Jazeera / Straits Times, 20-21 Nov).
+  * Russia pounds Ukraine anew after Putin vowed retaliation for the
+    Kerch bridge strikes: 80+ missiles and 400+ drones overnight, at
+    least six killed in Kyiv; Russian missiles land in Poland, which
+    Warsaw calls a deliberate provocation (AP via Daily Star, ISW, 21 Nov).
+  * Denmark accuses Russian intelligence of a plot to kill Ukrainian-
+    American rapper Kyivstoner at a Copenhagen concert and expels
+    Russia's defence attache (Al Jazeera, Reuters, WSJ, 20 Nov).
+  * LPG tanker Tara Gas is hit twice near the Strait of Hormuz off Oman
+    (16-17 Nov) and catches fire; one seafarer is missing, 24 rescued
+    (UKMTO, Safety4SEA, gCaptain, Gulf News, 17-20 Nov).
+  * Youth-led cost-of-living protests rally in 25+ European countries
+    against prices, rearmament and cuts (AFP via Daily Star, 21 Nov).
+  * Also: GTA VI launches 19 Nov to a 99 on Metacritic, with perfect
+    10s from IGN, GameSpot and Game Informer; Nikhil Gupta jailed 235
+    months (19 1/2 years) in New York in the Pannun murder-for-hire
+    plot; Bolsonaro hospitalised in Brasilia with a near-complete
+    intestinal obstruction.
 
 The drawing is fully deterministic: fixed geometry, fixed colours, no clock,
-no randomness, so every run writes identical bytes.
+no randomness, so every run writes identical bytes. Text blocks are measured
+with the real fonts and asserted inside their panels, so no text can be
+clipped or overflow (the 21 Nov v1 lead body ran past its panel edge).
 """
+
+import math
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -59,12 +75,23 @@ def wrap(draw, text, fnt, width):
 
 
 def text_block(draw, xy, text, fnt, fill, width, leading=1.12):
+    """Draw a wrapped block; return the y just below its last line."""
     x, y = xy
     size = fnt.size
     for line in wrap(draw, text, fnt, width):
         draw.text((x, y), line, font=fnt, fill=fill)
         y += int(size * leading)
     return y
+
+
+def star_points(cx, cy, r_out, r_in, rotation=-90):
+    """Five-pointed star polygon, one point up by default."""
+    pts = []
+    for i in range(10):
+        r = r_out if i % 2 == 0 else r_in
+        a = math.radians(rotation + i * 36)
+        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
 
 
 # ---------------------------------------------------------------- icons
@@ -89,7 +116,6 @@ def icon_globe(d, cx, cy, s, colour=INK):
 
 
 def icon_burst(d, cx, cy, s, colour=RED):
-    import math
     pts = []
     for i in range(16):
         r = s if i % 2 == 0 else int(s * 0.45)
@@ -134,23 +160,31 @@ def icon_crowd(d, cx, cy, s, colour=INK):
 
 
 def icon_flags(d, x, y, s):
-    # United States: stripes and a blue canton.
-    d.rectangle([x, y, x + s, y + int(s * 0.66)], fill=(255, 255, 255), outline=INK, width=3)
-    for i in range(4):
-        yy = y + i * int(s * 0.165)
-        d.rectangle([x, yy, x + s, yy + int(s * 0.082)], fill=RED)
-    d.rectangle([x, y, x + int(s * 0.42), y + int(s * 0.36)], fill=NAVY)
-    # China: red field, gold star.
+    # United States: 13 stripes and a blue canton with a field of stars.
+    h = int(s * 0.66)
+    stripe = h / 13
+    d.rectangle([x, y, x + s, y + h], fill=(255, 255, 255), outline=INK, width=3)
+    for i in range(0, 13, 2):
+        yy = y + i * stripe
+        d.rectangle([x, yy, x + s, yy + stripe], fill=RED)
+    canton_w, canton_h = int(s * 0.4), int(7 * stripe)
+    d.rectangle([x, y, x + canton_w, y + canton_h], fill=NAVY)
+    for row in range(5):
+        for col in range(6):
+            sx = x + 5 + col * 6.5
+            sy = y + 5 + row * 6.5
+            d.ellipse([sx - 1, sy - 1, sx + 1, sy + 1], fill=(255, 255, 255))
+    # China: red field, one large gold star in the canton, four small stars.
     x2 = x + s + 26
-    d.rectangle([x2, y, x2 + s, y + int(s * 0.66)], fill=(222, 41, 16), outline=INK, width=3)
-    d.polygon([(x2 + 22, y + 10), (x2 + 30, y + 30), (x2 + 51, y + 30), (x2 + 34, y + 42),
-               (x2 + 40, y + 62), (x2 + 22, y + 50), (x2 + 4, y + 62), (x2 + 10, y + 42),
-               (x2 - 7, y + 30), (x2 + 14, y + 30)], fill=GOLD)
+    d.rectangle([x2, y, x2 + s, y + h], fill=(222, 41, 16), outline=INK, width=3)
+    d.polygon(star_points(x2 + 20, y + 19, 15, 6), fill=GOLD)
+    for sx, sy in ((48, 10), (58, 20), (58, 32), (48, 42)):
+        d.polygon(star_points(x2 + sx, y + sy, 5, 2), fill=GOLD)
     # Russia: white, blue, red bands.
     x3 = x2 + s + 26
-    d.rectangle([x3, y, x3 + s, y + int(s * 0.66)], fill=(255, 255, 255), outline=INK, width=3)
-    d.rectangle([x3, y + int(s * 0.22), x3 + s, y + int(s * 0.44)], fill=(0, 57, 166))
-    d.rectangle([x3, y + int(s * 0.44), x3 + s, y + int(s * 0.66)], fill=(213, 43, 30))
+    d.rectangle([x3, y, x3 + s, y + h], fill=(255, 255, 255), outline=INK, width=3)
+    d.rectangle([x3, y + int(h / 3), x3 + s, y + int(2 * h / 3)], fill=(0, 57, 166))
+    d.rectangle([x3, y + int(2 * h / 3), x3 + s, y + h], fill=(213, 43, 30))
 
 
 # ---------------------------------------------------------------- page
@@ -163,36 +197,41 @@ d.rectangle([26, 26, W - 26, 146], fill=NAVY)
 d.text((52, 40), "THE WORLD TODAY", font=font(SERIF_BOLD, 58), fill=(255, 255, 255))
 d.text((52, 104), "Saturday, 21 November 2026", font=font(SANS_BOLD, 35), fill=GOLD)
 d.text((W - 52, 58), "ONE DAY.\nONE PAGE.", font=font(SANS_BOLD, 24), fill=(190, 205, 235), anchor="ra")
+d.rectangle([26, 150, W - 26, 154], fill=GOLD)
 
 # Lead story: the Shenzhen summit
-d.rectangle([26, 158, W - 26, 378], fill=LEAD_BG, outline=PANEL_LINE, width=2)
-icon_flags(d, 56, 190, 100)
-d.text((56, 286), "SHENZHEN, CHINA", font=font(SANS_BOLD, 24), fill=RED)
-text_block(d, (452, 182), "TRUMP, XI & PUTIN MEET FACE TO FACE",
-           font(SANS_BOLD, 46), INK, W - 452 - 48)
-text_block(d, (452, 300), "A rare trilateral summit, held on the sidelines "
-                          "of the APEC conference in China.",
-           font(SANS, 26), (52, 58, 72), W - 452 - 48)
+LEAD_TOP, LEAD_BOTTOM = 158, 378
+d.rectangle([26, LEAD_TOP, W - 26, LEAD_BOTTOM], fill=LEAD_BG, outline=PANEL_LINE, width=2)
+icon_flags(d, 56, 196, 110)
+d.text((56, 282), "SHENZHEN, CHINA", font=font(SANS_BOLD, 24), fill=RED)
+head_end = text_block(d, (452, 180), "TRUMP, XI & PUTIN MEET FACE TO FACE",
+                      font(SANS_BOLD, 44), INK, W - 452 - 48)
+body_end = text_block(d, (452, 288),
+                      "The first-ever summit of the three nuclear powers ends with a pledge: "
+                      "nuclear war 'cannot be won and must never be fought.'",
+                      font(SANS, 24), (52, 58, 72), W - 452 - 48)
+assert head_end <= 284, f"lead headline overflows: ends {head_end}"
+assert body_end <= LEAD_BOTTOM - 4, f"lead body overflows: ends {body_end}"
 
 # Six panels, two columns by three rows
 panels = [
     ("MYANMAR REJECTS GENOCIDE VERDICT",
-     "Rights groups urge sanctions after the world court's Rohingya ruling.",
+     "Myanmar calls the 9-6 verdict 'unfair'; the court orders returns and reparations.",
      icon_scales),
     ("COP31 DEADLOCKED IN OVERTIME",
-     "Antalya climate talks stall after the draft deal drops fossil fuels.",
+     "A third draft is due today as nearly 200 nations stay deadlocked.",
      icon_globe),
     ("RUSSIA POUNDS UKRAINE ANEW",
-     "Fresh strikes follow Putin's vow of retaliation; a Russian missile crashes in Poland.",
+     "One of Moscow's biggest barrages kills at least six in Kyiv; missiles land in Poland.",
      icon_burst),
     ("DENMARK FOILS ASSASSINATION PLOT",
-     "Russian intelligence accused over a Ukrainian target; a diplomat is expelled.",
+     "The target: rapper Kyivstoner; Russia's defense attache is expelled.",
      icon_shield),
     ("TANKER ABLAZE NEAR HORMUZ",
-     "A ship is hit by a projectile off Oman and catches fire; a seafarer is missing.",
+     "LPG tanker Tara Gas is hit twice off Oman; one seafarer is missing.",
      icon_ship),
     ("EUROPE MARCHES OVER PRICES",
-     "Cost-of-living protesters join forces in cities across the continent.",
+     "Youth-led rallies in 25+ countries rage against prices and rearmament.",
      icon_crowd),
 ]
 PX, PY, PW, PH, GAP = 26, 390, 473, 152, 12
@@ -201,18 +240,21 @@ for i, (headline, sub, icon) in enumerate(panels):
     x, y = PX + col * (PW + GAP), PY + row * (PH + GAP)
     d.rectangle([x, y, x + PW, y + PH], fill=PANEL, outline=PANEL_LINE, width=2)
     icon(d, x + 60, y + PH // 2, 36)
-    text_block(d, (x + 118, y + 14), headline, font(SANS_BOLD, 27), INK, PW - 136)
-    text_block(d, (x + 118, y + 82), sub, font(SANS, 20), (52, 58, 72), PW - 136)
+    h_end = text_block(d, (x + 118, y + 14), headline, font(SANS_BOLD, 27), INK, PW - 136)
+    s_end = text_block(d, (x + 118, y + 82), sub, font(SANS, 20), (52, 58, 72), PW - 136)
+    assert h_end <= y + 78, f"panel {i} headline overflows: ends {h_end}"
+    assert s_end <= y + PH - 4, f"panel {i} sub overflows: ends {s_end}"
 
 # Bottom ticker
 TY = PY + 3 * (PH + GAP) - GAP + 12
 d.rectangle([26, TY, W - 26, H - 26], fill=(30, 30, 34))
 d.text((48, TY + 14), "ALSO TODAY", font=font(SANS_BOLD, 24), fill=GOLD)
-text_block(d, (48, TY + 46),
-           "GTA VI launches worldwide to rave reviews  •  Plotter jailed 19½ years in "
-           "New York in the Sikh separatist murder-for-hire case  •  Brazil's Bolsonaro "
-           "is taken to hospital",
-           font(SANS, 21), (238, 238, 238), W - 96)
+t_end = text_block(d, (48, TY + 46),
+                   "GTA VI launches to a 99 on Metacritic  \u2022  Nikhil Gupta jailed 19\u00bd years "
+                   "in the Pannun murder plot  \u2022  Bolsonaro hospitalized with an intestinal "
+                   "obstruction",
+                   font(SANS, 21), (238, 238, 238), W - 96)
+assert t_end <= H - 30, f"ticker overflows: ends {t_end}"
 
 img.save("entry.png", optimize=True)
 print("entry.png written")
